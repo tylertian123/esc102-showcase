@@ -1,0 +1,7 @@
+pyntcloud_plot*
+
+*.las
+*.ply
+*.xyz
+*.pdf
+__pycache__/
