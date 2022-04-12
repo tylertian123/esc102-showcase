@@ -4,7 +4,7 @@ Todos:
 
 * [ ] Sensor
   * [ ] Figure out how negative numbers are represented and implement in driver
-  * [ ] Configure sensor: set detection speed to 1kHz
+  * [ ] Configure sensor: set detection speed to 1kHz, possibly raise baudrate
 * [ ] Servos
   * [ ] Write/figure out servo driver
 * [ ] Integration
