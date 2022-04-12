@@ -17,11 +17,13 @@ class Sensor:
         self.ser = serial.Serial(device, baudrate, bytesize=serial.EIGHTBITS,
                                  parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE)
 
-    def read(self) -> Tuple[float, int, float]:
+    def read(self, clear_buf: bool = False) -> Tuple[float, int, float]:
         """
         Read a distance value (in meters).
 
-        This method blocks until a value is ready.
+        This method blocks until a value is ready, unless there is already enough data in the receive buffer
+        for a single distance reading. If clear_buf is True, the receive buffer is always cleared and the method
+        always waits until the first newly available result.
 
         Returns a tuple of (distace, strength, temp) where distance is in meters, strength is between 0 and 65535,
         and temp is in degrees Celsius. If strength < 100, the detection is considered unstable and the returned
@@ -29,6 +31,8 @@ class Sensor:
 
         Raises ChecksumError on checksum mismatch.
         """
+        if clear_buf:
+            self.ser.reset_input_buffer()
         # Format: 0x59 0x59 Dist_L Dist_H Strength_L Strength_H Temp_L Temp_H Checksum
         # First read bytes until we see the full header
         start_byte_count = 0
@@ -40,8 +44,7 @@ class Sensor:
                     break
             else:
                 start_byte_count = 0
-                print("[Warning] TFmini-S Serial: Discarded byte", b)
-        # Read the next 7 bytes
+        # Read the next 7 bytes (checksum read separately)
         data = self.ser.read(6)
         # Note unpacking the bytes here turns them into ints
         dist_l, dist_h, strength_l, strength_h, temp_l, temp_h = data
@@ -56,3 +59,12 @@ class Sensor:
         dist = ((dist_h << 8) | dist_l) / 65535 * 12
         strength = ((strength_h << 8) | strength_l)
         return dist, strength, temp
+
+    def readings_avail(self) -> int:
+        """
+        Returns the approximate number of distance readings currently available (in the input buffer).
+
+        Note this is only an estimate. This method assumes that all bytes in the receive buffer are valid. The actual
+        number of readings available may be less if the buffer starts with a partially processed message.
+        """
+        return self.ser.in_waiting // 9 # 9 bytes per reading
