@@ -5,6 +5,10 @@ import time
 import math
 
 
+# Set pin factory to pigpio according to the docs to reduce jitter
+gpiozero.Device.pin_factory = gpiozero.pins.pigpio.PiGPIOFactory()
+
+
 class Lidar:
 
     def __init__(self, sensor_device: str, sensor_baudrate: int, horiz_servo_port: int, vert_servo_port: int,
@@ -13,9 +17,9 @@ class Lidar:
         # Pulse width range 500us to 2500us
         # Frame width of 3ms inferred from operating frequency range (50Hz-330Hz)
         self.h_servo = gpiozero.AngularServo(horiz_servo_port, initial_angle=0, min_angle=-135, max_angle=-135,
-            min_pulse_width=500e-6, max_pulse_width=2500e-6, frame_width=3e3)
+            min_pulse_width=500e-6, max_pulse_width=2500e-6, frame_width=4e-3)
         self.v_servo = gpiozero.AngularServo(vert_servo_port, initial_angle=0, min_angle=0, max_angle=270,
-            min_pulse_width=500e-6, max_pulse_width=2500e-6, frame_width=3e3)
+            min_pulse_width=500e-6, max_pulse_width=2500e-6, frame_width=4e-3)
         self.callback = data_callback
 
     def reset(self) -> None:
