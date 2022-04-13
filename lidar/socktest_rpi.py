@@ -6,6 +6,7 @@ if __name__ == "__main__":
     sock.connect((input("Host: "), int(input("Port: "))))
     #sock.setblocking(False)
     sock.send(b"Some stuff")
+    sock.send(b"Some more stuff")
     
     print(sock.recv(1024))
 

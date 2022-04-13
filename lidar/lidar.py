@@ -24,6 +24,13 @@ class Lidar:
         """
         self.h_servo.angle = 0
         self.v_servo.angle = 0
+    
+    def move_to_angle(self, h_angle: float, v_angle: float) -> None:
+        """
+        Move the servos to a specific angle.
+        """
+        self.h_servo.angle = h_angle
+        self.v_servo.angle = v_angle
 
     def scan(self, start_angle_h: float, stop_angle_h: float, start_angle_v: float, stop_angle_v: float,
              h_step: float, v_step: float, h_step_time: float, v_step_time: float) -> None:
@@ -52,7 +59,14 @@ class Lidar:
                 # If more than 2 readings are in the buffer, discard them so we get the latest values
                 clear_buf = self.sensor.readings_avail() > 2
                 # TODO: Add error handling for r being -1, once stuff on the sensor end is figured out
-                r, strength, temp = self.sensor.read(clear_buf)
+                for _ in range(5):
+                    try:
+                        r, strength, temp = self.sensor.read(clear_buf)
+                        break
+                    except tfmini_s.ChecksumError:
+                        pass
+                else:
+                    raise RuntimeError("Repeated checksum errors when communicating with ranging sensor!")
                 theta = math.radians(self.h_servo.angle)
                 self.callback(r * math.cos(phi) * math.cos(theta), r * math.cos(phi) * math.sin(theta), r * math.sin(phi))
             # Change stepping direction and move rows
