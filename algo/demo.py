@@ -47,7 +47,7 @@ class Demo:
         self.SLICE_START = np.min(self.point_arr[:, 2])
         self.SLICE_STOP = np.max(self.point_arr[:, 2])
         self.slice_step = 0.1
-        self.slice_z = 1.227
+        self.slice_z = 0
         self.slice_updated = True
 
         self.window = None
@@ -58,6 +58,7 @@ class Demo:
         self.stems_edit = None
         self.cluster_eps = 0.15
         self.cluster_min_points = 5
+        self.use_ransac = False
         self.init_window()
 
         self.tree_vis = None
@@ -68,7 +69,7 @@ class Demo:
 
     def init_window(self) -> None:
         self.window = gui.Application.instance.create_window(
-            "Slice controls", 500, 400)
+            "Slice controls", 500, 500)
         em = self.window.theme.font_size
         layout = gui.Vert(0.33 * em, gui.Margins(0.5 * em,
                                                  0.5 * em, 0.5 * em, 0.5 * em))
@@ -97,9 +98,8 @@ class Demo:
         # Use convex hull to eliminate all the points not on the perimeter after squashing
         pts = self.point_arr[:, :2]
         hull = pts[scipy.spatial.ConvexHull(pts).vertices]
+        # Don't use RANSAC for computing the crown width since it's unnecessary
         long_diam, perp_diam = compute_diameters(hull, use_ransac=False)
-        with open("crown.pts", "wb") as f:
-            np.save(f, pts)
         print("Calculated crown width:", long_diam, perp_diam)
         collapse = gui.CollapsableVert("Crown width", 0.33 * em, gui.Margins(em, 0, 0, 0))
         horiz = gui.Horiz()
@@ -174,6 +174,10 @@ class Demo:
         horiz.add_child(nedit)
         collapse.add_child(horiz)
 
+        cb = gui.Checkbox("Use RANSAC?")
+        cb.set_on_checked(self._on_ransac_cb)
+        collapse.add_child(cb)
+
         layout.add_child(collapse)
 
         self.window.add_child(layout)
@@ -198,6 +202,10 @@ class Demo:
     def _on_slice_step_edit(self, val: float):
         self.slice_updated = True
         self.slice_step = val
+    
+    def _on_ransac_cb(self, checked: bool):
+        self.slice_updated = True
+        self.use_ransac = checked
 
     def init_visualizers(self) -> None:
         self.tree_vis = o3d.visualization.Visualizer()
@@ -245,9 +253,7 @@ class Demo:
         for cluster_index in range(cluster_count):
             # Extract the points in the current cluster and slice to make it 2D
             points = cloud_points[np.where(labels == cluster_index)][:, :2]
-            # with open(f"points{cluster_index}.pts", "wb") as f:
-            #     np.save(f, points)
-            diameters.append(compute_diameters(points))
+            diameters.append(compute_diameters(points, use_ransac=self.use_ransac))
         # Set the diameters in sorted order
         for (diam_edit, ratio_edit), (long_diam, perp_diam) in zip(zip(self.diam_edits, self.diam_ratio_edits),
             itertools.chain(sorted(diameters, reverse=True), itertools.repeat((np.nan, np.nan)))):
