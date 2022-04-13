@@ -10,4 +10,4 @@ Todos:
 * [ ] Integration
   * [x] Set up LiDAR driver that controls both sensor and servos
   * [x] Establish interface for sending data
-  * [ ] Receive data on the processing end
+  * [x] Receive data on the processing end

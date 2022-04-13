@@ -24,7 +24,7 @@ class Lidar:
         """
         self.h_servo.angle = 0
         self.v_servo.angle = 0
-    
+
     def move_to_angle(self, h_angle: float, v_angle: float) -> None:
         """
         Move the servos to a specific angle.
