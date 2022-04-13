@@ -5,7 +5,7 @@ import sys
 import scipy
 import itertools
 from open3d.visualization import gui
-
+from skimage import measure
 
 SLICE_COLOR = (0, 0, 1)
 COLORS = np.array([
@@ -21,25 +21,21 @@ COLORS = np.array([
 def get_color(label: int):
     return np.array([0, 0, 0]) if label == -1 else COLORS[label % len(COLORS)]
 
-
-def compute_diameters(points: np.ndarray) -> Tuple[float, float]:
+def compute_diameters(points: np.ndarray, use_ransac: bool = True) -> Tuple[float, float]:
     if len(points) < 3:
         return (np.nan, np.nan)
-    hull = points[scipy.spatial.ConvexHull(points).vertices]
-    distances = scipy.spatial.distance_matrix(hull, hull)
-    # Get the indices of the two points with maximum distance
-    i, j = np.unravel_index(np.argmax(distances), distances.shape)
-    # Compute the distance along the axis perpendicular to the diameter axis
-    # Find the vector to project onto, normalized and perpendicular to the difference between the diameter points
-    s = hull[i] - hull[j]
-    s /= np.sqrt(np.dot(s, s))
-    s[0], s[1] = -s[1], s[0]
-    # Find the length of each projection by taking the dot product
-    proj_lens = np.dot(hull - hull[i], s)
-    # Instead of taking the most positive projected length and subtracting the most negative, we take the projected
-    # length furthest from zero and double it. This is because in the scanned point cloud, the stem might appear as
-    # only half of an ellipse since the back is blocked
-    return distances[i, j], np.max(np.abs(proj_lens)) * 2
+    # Use RANSAC to fit an ellipse to the points
+    if use_ransac:
+        ellipse, _ = measure.ransac(points, measure.fit.EllipseModel, min(max(3, len(points) // 3), 20), 0.01, max_trials=30)
+        if ellipse is None:
+            return compute_diameters(points, use_ransac=False)
+    else:
+        ellipse = measure.fit.EllipseModel()
+        if not ellipse.estimate(points):
+            return np.nan, np.nan
+    a = ellipse.params[2] * 2
+    b = ellipse.params[3] * 2
+    return max(a, b), min(a, b)
 
 class Demo:
 
@@ -51,7 +47,7 @@ class Demo:
         self.SLICE_START = np.min(self.point_arr[:, 2])
         self.SLICE_STOP = np.max(self.point_arr[:, 2])
         self.slice_step = 0.1
-        self.slice_z = self.SLICE_START
+        self.slice_z = 1.227
         self.slice_updated = True
 
         self.window = None
@@ -98,7 +94,12 @@ class Demo:
         layout.add_child(horiz)
 
         print("Computing crown width...")
-        long_diam, perp_diam = compute_diameters(self.point_arr[:, :2])
+        # Use convex hull to eliminate all the points not on the perimeter after squashing
+        pts = self.point_arr[:, :2]
+        hull = pts[scipy.spatial.ConvexHull(pts).vertices]
+        long_diam, perp_diam = compute_diameters(hull, use_ransac=False)
+        with open("crown.pts", "wb") as f:
+            np.save(f, pts)
         print("Calculated crown width:", long_diam, perp_diam)
         collapse = gui.CollapsableVert("Crown width", 0.33 * em, gui.Margins(em, 0, 0, 0))
         horiz = gui.Horiz()
@@ -244,6 +245,8 @@ class Demo:
         for cluster_index in range(cluster_count):
             # Extract the points in the current cluster and slice to make it 2D
             points = cloud_points[np.where(labels == cluster_index)][:, :2]
+            # with open(f"points{cluster_index}.pts", "wb") as f:
+            #     np.save(f, points)
             diameters.append(compute_diameters(points))
         # Set the diameters in sorted order
         for (diam_edit, ratio_edit), (long_diam, perp_diam) in zip(zip(self.diam_edits, self.diam_ratio_edits),

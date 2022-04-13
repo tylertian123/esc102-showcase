@@ -2,3 +2,4 @@ open3d
 numpy
 scipy
 pyntcloud
+scikit-image
