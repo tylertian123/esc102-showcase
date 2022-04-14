@@ -2,10 +2,10 @@ from lidar import Lidar
 import socket
 import struct
 
-SENSOR_DEV = ""
-SENSOR_BAUDRATE = 115200
-HORIZ_SERVO = 0
-VERT_SERVO = 0
+SENSOR_DEV = "/dev/serial0"
+SENSOR_BAUDRATE = 460800
+HORIZ_SERVO = 18
+VERT_SERVO = 12
 
 SCAN_RANGE_THETA = (-30, 30)
 SCAN_RANGE_PHI = (0, 60)
@@ -31,7 +31,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
     input("Zero ok? Press enter to confirm")
 
     input("System ready. Press enter to start scan")
-    lidar.scan_h(SCAN_RANGE_THETA[0], SCAN_RANGE_THETA[1], SCAN_RANGE_PHI[0], SCAN_RANGE_PHI[1],
+    lidar.scan_v(SCAN_RANGE_THETA[0], SCAN_RANGE_THETA[1], SCAN_RANGE_PHI[0], SCAN_RANGE_PHI[1],
                  (SCAN_RANGE_THETA[1] - SCAN_RANGE_THETA[0]) / SCAN_THETA_POINTS,
                  (SCAN_RANGE_PHI[1] - SCAN_RANGE_PHI[0]) / SCAN_PHI_POINTS,
                  SCAN_STEP_TIME)

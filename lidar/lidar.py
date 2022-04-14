@@ -19,7 +19,7 @@ class Lidar:
         self.sensor = tfmini_s.Sensor(sensor_device, sensor_baudrate)
         # Pulse width range 500us to 2500us
         # Frame width of 3ms inferred from operating frequency range (50Hz-330Hz)
-        self.h_servo = gpiozero.AngularServo(horiz_servo_port, initial_angle=0, min_angle=-135, max_angle=-135,
+        self.h_servo = gpiozero.AngularServo(horiz_servo_port, initial_angle=0, min_angle=-135, max_angle=135,
             min_pulse_width=500e-6, max_pulse_width=2500e-6, frame_width=4e-3)
         self.v_servo = gpiozero.AngularServo(vert_servo_port, initial_angle=0, min_angle=0, max_angle=270,
             min_pulse_width=500e-6, max_pulse_width=2500e-6, frame_width=4e-3)
@@ -66,6 +66,8 @@ class Lidar:
             else:
                 print("[LiDAR] Error: Repeated checksum errors!", file=sys.stderr)
                 raise RuntimeError("Repeated checksum errors when communicating with ranging sensor!")
+            if r == -1:
+                print(f"[LiDAR] Warning: Could not read distance (strength={strength}, temp={temp})", file=sys.stderr)
             theta = math.radians(self.h_angle)
             phi = math.radians(self.v_angle)
             self.callback(r * math.cos(phi) * math.cos(theta), r * math.cos(phi) * math.sin(theta), r * math.sin(phi))
