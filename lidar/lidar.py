@@ -70,10 +70,10 @@ class Lidar:
             phi = math.radians(self.v_angle)
             self.callback(r * math.cos(phi) * math.cos(theta), r * math.cos(phi) * math.sin(theta), r * math.sin(phi))
 
-    def scan(self, start_angle_h: float, stop_angle_h: float, start_angle_v: float, stop_angle_v: float,
-             h_step: float, v_step: float, step_time: float) -> None:
+    def scan_h(self, start_angle_h: float, stop_angle_h: float, start_angle_v: float, stop_angle_v: float,
+               h_step: float, v_step: float, step_time: float) -> None:
         """
-        Perform a full scan in the angle range specified.
+        Perform a full scan in the angle range specified, sweeping horizontally first.
 
         start_angle_h, stop_angle_h: Start and stop horizontal angles (left-right axis).
         start_angle_v, stop_angle_v: Start and stop vertical angles (up-down axis).
@@ -83,10 +83,7 @@ class Lidar:
             for the slower axis.
         """
         # Move servos into initial position and wait
-        self.h_servo.angle = start_angle_h
-        self.v_servo.angle = start_angle_v
-        self.h_angle = start_angle_h
-        self.v_angle = start_angle_v
+        self.move_to_angle(start_angle_h, start_angle_v)
         time.sleep(1)
 
         self.scanning = True
@@ -105,6 +102,33 @@ class Lidar:
             h_step = -h_step
             self.v_angle += v_step
             self.v_servo.angle = self.v_angle
+            time.sleep(step_time)
+
+        self.scanning = False
+    
+    def scan_v(self, start_angle_h: float, stop_angle_h: float, start_angle_v: float, stop_angle_v: float,
+               h_step: float, v_step: float, step_time: float) -> None:
+        """
+        Same as scan_h(), but sweeps vertically first.
+        """
+        self.move_to_angle(start_angle_h, start_angle_v)
+        time.sleep(1)
+
+        self.scanning = True
+        th = threading.Thread(target=self._sensor_daemon)
+        th.setDaemon(True)
+        th.start()
+
+        while self.h_servo.angle < stop_angle_h:
+            # Scan in both directions
+            while (v_step > 0 and self.v_servo.angle < stop_angle_v) or (v_step < 0 and self.v_servo.angle > start_angle_v):
+                self.v_angle += v_step
+                self.v_servo.angle = self.v_angle
+
+            # Change stepping direction and move slow axis
+            v_step = -v_step
+            self.h_angle += h_step
+            self.h_servo.angle = self.h_angle
             time.sleep(step_time)
 
         self.scanning = False

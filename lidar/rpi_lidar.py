@@ -31,8 +31,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
     input("Zero ok? Press enter to confirm")
 
     input("System ready. Press enter to start scan")
-    lidar.scan(SCAN_RANGE_THETA[0], SCAN_RANGE_THETA[1], SCAN_RANGE_PHI[0], SCAN_RANGE_PHI[1],
-            (SCAN_RANGE_THETA[1] - SCAN_RANGE_THETA[0]) / SCAN_THETA_POINTS,
-            (SCAN_RANGE_PHI[1] - SCAN_RANGE_PHI[0]) / SCAN_PHI_POINTS,
-            SCAN_STEP_TIME)
+    lidar.scan_h(SCAN_RANGE_THETA[0], SCAN_RANGE_THETA[1], SCAN_RANGE_PHI[0], SCAN_RANGE_PHI[1],
+                 (SCAN_RANGE_THETA[1] - SCAN_RANGE_THETA[0]) / SCAN_THETA_POINTS,
+                 (SCAN_RANGE_PHI[1] - SCAN_RANGE_PHI[0]) / SCAN_PHI_POINTS,
+                 SCAN_STEP_TIME)
     print("Scan done")
