@@ -75,7 +75,7 @@ class Demo:
         layout = gui.Vert(0.33 * em, gui.Margins(0.5 * em,
                                                  0.5 * em, 0.5 * em, 0.5 * em))
 
-        layout.add_child(gui.Label("Slice height:"))
+        layout.add_child(gui.Label("Slice height (m):"))
         horiz = gui.Horiz(0.33 * em)
         self.slice_z_slider = gui.Slider(gui.Slider.DOUBLE)
         self.slice_z_slider.set_on_value_changed(self._on_slider)
@@ -89,7 +89,7 @@ class Demo:
         layout.add_child(horiz)
 
         horiz = gui.Horiz()
-        horiz.add_child(gui.Label("Height:"))
+        horiz.add_child(gui.Label("Height (m):"))
         nedit = gui.NumberEdit(gui.NumberEdit.DOUBLE)
         nedit.double_value = self.SLICE_STOP
         horiz.add_child(nedit)
@@ -104,19 +104,19 @@ class Demo:
         print("Calculated crown width:", long_diam, perp_diam)
         collapse = gui.CollapsableVert("Crown width", 0.33 * em, gui.Margins(em, 0, 0, 0))
         horiz = gui.Horiz()
-        horiz.add_child(gui.Label("Long Axis:"))
+        horiz.add_child(gui.Label("Long Axis (m):"))
         nedit = gui.NumberEdit(gui.NumberEdit.DOUBLE)
         nedit.double_value = long_diam
         horiz.add_child(nedit)
         collapse.add_child(horiz)
         horiz = gui.Horiz()
-        horiz.add_child(gui.Label("Short Axis:"))
+        horiz.add_child(gui.Label("Short Axis (m):"))
         nedit = gui.NumberEdit(gui.NumberEdit.DOUBLE)
         nedit.double_value = perp_diam
         horiz.add_child(nedit)
         collapse.add_child(horiz)
         horiz = gui.Horiz()
-        horiz.add_child(gui.Label("Average:"))
+        horiz.add_child(gui.Label("Average (m):"))
         nedit = gui.NumberEdit(gui.NumberEdit.DOUBLE)
         nedit.double_value = (long_diam + perp_diam) / 2
         horiz.add_child(nedit)
@@ -130,7 +130,7 @@ class Demo:
         layout.add_child(horiz)
 
         horiz = gui.Horiz(0.33 * em)
-        horiz.add_child(gui.Label("Diameters:"))
+        horiz.add_child(gui.Label("Diameters (m):"))
         self.diam_edits.append(gui.NumberEdit(gui.NumberEdit.DOUBLE))
         self.diam_edits.append(gui.NumberEdit(gui.NumberEdit.DOUBLE))
         #self.diam_edits.append(gui.NumberEdit(gui.NumberEdit.DOUBLE))

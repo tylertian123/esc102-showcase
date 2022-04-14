@@ -17,7 +17,7 @@ class Sensor:
         self.ser = serial.Serial(device, baudrate, bytesize=serial.EIGHTBITS,
                                  parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE)
 
-    def read(self, clear_buf: bool = False) -> Tuple[float, int, float]:
+    def read(self, clear_buf: bool = False) -> Tuple[int, int, float]:
         """
         Read a distance value (in meters).
 
@@ -53,11 +53,13 @@ class Sensor:
         if (0x59 * 2 + sum(data)) & 0xFF != int.from_bytes(checksum, byteorder="little"):
             raise ChecksumError(f"Checksum {checksum} does not match expected value 0x{(0x59 * 2 + sum(data)) & 0xFF:02x}")
         temp = ((temp_h << 8) | temp_l) / 8 - 256
-        # TODO: Figure out if distance is mapped correctly here
-        # TODO: When strength < 100, distance should be -1, figure out how that's represented
-        # TODO: Implement the other cases, when distance is -2 (signal strength saturation) and -4 (ambient light saturation)
-        dist = ((dist_h << 8) | dist_l) / 65535 * 12
+        dist = (dist_h << 8) | dist_l
+        # -1, -2, or -4
+        if dist == 0xFFFF or dist == 0xFFFE or dist == 0xFFFC:
+            dist = -1
         strength = ((strength_h << 8) | strength_l)
+        if strength == 0xFFFF:
+            strength = -1
         return dist, strength, temp
 
     def clear_buf(self) -> None:
