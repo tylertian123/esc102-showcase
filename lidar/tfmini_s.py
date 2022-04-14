@@ -60,6 +60,12 @@ class Sensor:
         strength = ((strength_h << 8) | strength_l)
         return dist, strength, temp
 
+    def clear_buf(self) -> None:
+        """
+        Clear the serial input buffer.
+        """
+        self.ser.reset_input_buffer()
+
     def readings_avail(self) -> int:
         """
         Returns the approximate number of distance readings currently available (in the input buffer).
