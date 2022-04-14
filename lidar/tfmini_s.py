@@ -17,7 +17,7 @@ class Sensor:
         self.ser = serial.Serial(device, baudrate, bytesize=serial.EIGHTBITS,
                                  parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE)
 
-    def read(self, clear_buf: bool = False) -> Tuple[int, int, float]:
+    def read(self, clear_buf: bool = False) -> Tuple[float, int, float]:
         """
         Read a distance value (in meters).
 
@@ -60,7 +60,7 @@ class Sensor:
         strength = ((strength_h << 8) | strength_l)
         if strength == 0xFFFF:
             strength = -1
-        return dist, strength, temp
+        return dist / 100, strength, temp
 
     def clear_buf(self) -> None:
         """
