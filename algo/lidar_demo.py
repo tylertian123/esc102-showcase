@@ -56,6 +56,7 @@ if __name__ == "__main__":
         vis.create_window()
         #vis.get_render_option().point_size = 2.0
         vis.add_geometry(cloud)
+        vis.add_geometry(o3d.geometry.TriangleMesh.create_coordinate_frame())
 
         close = False
         def reset_view_callback(vis, action, mods):

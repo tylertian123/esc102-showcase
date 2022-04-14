@@ -28,6 +28,7 @@ class Lidar:
         self.h_angle = 0
         self.v_angle = 0
         self.scanning = False
+        self.scan_up = False
 
     def reset(self) -> None:
         """
@@ -68,6 +69,8 @@ class Lidar:
                 raise RuntimeError("Repeated checksum errors when communicating with ranging sensor!")
             if r == -1:
                 print(f"[LiDAR] Warning: Could not read distance (strength={strength}, temp={temp})", file=sys.stderr)
+            if not self.scan_up:
+                continue
             theta = math.radians(self.h_angle)
             phi = math.radians(self.v_angle)
             self.callback(r * math.cos(phi) * math.cos(theta), r * math.cos(phi) * math.sin(theta), r * math.sin(phi))
@@ -93,6 +96,7 @@ class Lidar:
         th = threading.Thread(target=self._sensor_daemon)
         th.setDaemon(True)
         th.start()
+        self.scan_up = h_step > 0
 
         while self.v_servo.angle < stop_angle_v:
             # Scan in both directions
@@ -102,6 +106,7 @@ class Lidar:
 
             # Change stepping direction and move slow axis
             h_step = -h_step
+            self.scan_up = h_step > 0
             self.v_angle += v_step
             self.v_servo.angle = self.v_angle
             time.sleep(step_time)
@@ -120,6 +125,7 @@ class Lidar:
         th = threading.Thread(target=self._sensor_daemon)
         th.setDaemon(True)
         th.start()
+        self.scan_up = v_step > 0
 
         while self.h_servo.angle < stop_angle_h:
             # Scan in both directions
@@ -129,6 +135,7 @@ class Lidar:
 
             # Change stepping direction and move slow axis
             v_step = -v_step
+            self.scan_up = v_step > 0
             self.h_angle += h_step
             self.h_servo.angle = self.h_angle
             time.sleep(step_time)
