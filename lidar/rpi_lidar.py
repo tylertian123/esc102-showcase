@@ -7,10 +7,10 @@ SENSOR_BAUDRATE = 460800
 HORIZ_SERVO = 18
 VERT_SERVO = 12
 
-SCAN_RANGE_THETA = (-30, 30)
-SCAN_RANGE_PHI = (0, 60)
+SCAN_RANGE_THETA = (-60, 60)
+SCAN_RANGE_PHI = (0, 45)
 SCAN_THETA_POINTS = 240
-SCAN_PHI_POINTS = 120
+SCAN_PHI_POINTS = 180
 SCAN_STEP_TIME = 0.01
 
 print("Initializing")
@@ -35,4 +35,6 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
                  (SCAN_RANGE_THETA[1] - SCAN_RANGE_THETA[0]) / SCAN_THETA_POINTS,
                  (SCAN_RANGE_PHI[1] - SCAN_RANGE_PHI[0]) / SCAN_PHI_POINTS,
                  SCAN_STEP_TIME)
-    print("Scan done")
+    print("Scan done, zeroing")
+    lidar.reset()
+    input("Zero done")

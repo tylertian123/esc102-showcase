@@ -8,7 +8,7 @@ import sys
 
 
 # Set pin factory to pigpio according to the docs to reduce jitter
-gpiozero.Device.pin_factory = gpiozero.pins.pigpio.PiGPIOFactory()
+#gpiozero.Device.pin_factory = gpiozero.pins.pigpio.PiGPIOFactory()
 
 
 class Lidar:
