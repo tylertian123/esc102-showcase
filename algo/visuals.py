@@ -1,39 +1,39 @@
-from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt, patches
+import matplotlib
 import numpy as np
-from typing import Tuple
-import scipy.spatial
-import sys
+from skimage.measure import fit, ransac
+import math
 
-def compute_diameters(points: np.ndarray) -> Tuple[float, float]:
-    if len(points) < 3:
-        return (np.nan, np.nan)
-    plt.scatter(points[:, 0], points[:, 1])
-    plt.gca().set_aspect('equal')
-    hull = points[scipy.spatial.ConvexHull(points).vertices]
-    plt.plot(hull[:, 0], hull[:, 1], c='y')
-    distances = scipy.spatial.distance_matrix(hull, hull)
-    # Get the indices of the two points with maximum distance
-    i, j = np.unravel_index(np.argmax(distances), distances.shape)
-    plt.plot([hull[i][0], hull[j][0]], [hull[i][1], hull[j][1]], c='r')
-    # Compute the distance along the axis perpendicular to the diameter axis
-    # Find the vector to project onto, normalized and perpendicular to the difference between the diameter points
-    s = hull[i] - hull[j]
-    s /= np.sqrt(np.dot(s, s))
-    s[0], s[1] = -s[1], s[0]
-    plt.arrow(hull[i][0], hull[i][1], s[0] * 0.2, s[1] * 0.2)
-    # Find the length of each projection by taking the dot product
-    proj_lens = np.dot(hull - hull[i], s)
-    idx = np.argmax(np.abs(proj_lens))
-    proj_len = np.dot(hull[idx] - hull[i], s)
-    plt.arrow(hull[i][0], hull[i][1], s[0] * proj_len, s[1] * proj_len, color='limegreen')
-    plt.arrow(hull[i][0], hull[i][1], *(hull[idx] - hull[i]), color='limegreen')
-    plt.plot([hull[i][0] + s[0] * proj_len, hull[idx][0]], [hull[i][1] + s[1] * proj_len, hull[idx][1]], color='limegreen', linestyle=':')
-    plt.show()
-    # Instead of taking the most positive projected length and subtracting the most negative, we take the projected
-    # length furthest from zero and double it. This is because in the scanned point cloud, the stem might appear as
-    # only half of an ellipse since the back is blocked
-    return distances[i, j], np.max(np.abs(proj_lens)) * 2
+matplotlib.use("TkAgg")
 
-with open(sys.argv[1], 'rb') as f:
-    points = np.load(f)
-compute_diameters(points)
+
+with open("points0.pts", 'rb') as f0, open("points1.pts", 'rb') as f1:
+    points0 = np.load(f0)
+    points1 = np.load(f1)
+
+plt.gca().set_aspect('equal')
+plt.scatter(points0[:, 0], points0[:, 1], c='b')
+plt.scatter(points1[:, 0], points1[:, 1], c='r')
+
+def plot_fit(points: np.ndarray, outlier_color: str, ellipse_color: str):
+    ellipse, inliers = ransac(points, fit.EllipseModel, min(max(3, len(points) // 3), 20), 0.02, max_trials=50)
+    plt.gca().add_patch(patches.Ellipse((ellipse.params[0], ellipse.params[1]), 2 * ellipse.params[2], 2 * ellipse.params[3], math.degrees(ellipse.params[4]), fill=False, color=ellipse_color))
+    out_pts = points[np.where(inliers == False)]
+    plt.scatter(out_pts[:, 0], out_pts[:, 1], c=outlier_color)
+
+    (x0, y0), (x1, y1) = ellipse.predict_xy(np.array([0, np.pi]))
+    plt.plot([x0, x1], [y0, y1], linestyle='--', c=ellipse_color)
+    (x0, y0), (x1, y1) = ellipse.predict_xy(np.array([np.pi / 2, np.pi * 3 / 2]))
+    plt.plot([x0, x1], [y0, y1], linestyle='--', c=ellipse_color)
+
+plot_fit(points0, outlier_color="orange", ellipse_color="limegreen")
+plot_fit(points1, outlier_color="orange", ellipse_color="limegreen")
+
+plt.legend(handles=[patches.Patch(color="blue", label="Stem 1"), patches.Patch(color="red", label="Stem 2"),
+    patches.Patch(color="orange", label="Outliers"), patches.Patch(color="limegreen", label="Ellipse Fit")])
+man = plt.get_current_fig_manager()
+man.resize(*man.window.maxsize())
+plt.pause(5)
+
+plt.gcf().savefig("algo.png", format="png", dpi=600, transparent=True)
+plt.show()

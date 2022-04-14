@@ -8,6 +8,7 @@ from open3d.visualization import gui
 from skimage import measure
 
 SLICE_COLOR = (0, 0, 1)
+TREE_COLOR = (0, 0, 0)
 COLORS = np.array([
     [0, 0, 1],
     [0, 1, 0],
@@ -47,7 +48,7 @@ class Demo:
         self.SLICE_START = np.min(self.point_arr[:, 2])
         self.SLICE_STOP = np.max(self.point_arr[:, 2])
         self.slice_step = 0.1
-        self.slice_z = 0
+        self.slice_z = 1.296
         self.slice_updated = True
 
         self.window = None
@@ -69,7 +70,7 @@ class Demo:
 
     def init_window(self) -> None:
         self.window = gui.Application.instance.create_window(
-            "Slice controls", 500, 500)
+            "Output", 500, 500)
         em = self.window.theme.font_size
         layout = gui.Vert(0.33 * em, gui.Margins(0.5 * em,
                                                  0.5 * em, 0.5 * em, 0.5 * em))
@@ -103,13 +104,13 @@ class Demo:
         print("Calculated crown width:", long_diam, perp_diam)
         collapse = gui.CollapsableVert("Crown width", 0.33 * em, gui.Margins(em, 0, 0, 0))
         horiz = gui.Horiz()
-        horiz.add_child(gui.Label("Longest:"))
+        horiz.add_child(gui.Label("Long Axis:"))
         nedit = gui.NumberEdit(gui.NumberEdit.DOUBLE)
         nedit.double_value = long_diam
         horiz.add_child(nedit)
         collapse.add_child(horiz)
         horiz = gui.Horiz()
-        horiz.add_child(gui.Label("Perpendicular:"))
+        horiz.add_child(gui.Label("Short Axis:"))
         nedit = gui.NumberEdit(gui.NumberEdit.DOUBLE)
         nedit.double_value = perp_diam
         horiz.add_child(nedit)
@@ -123,7 +124,7 @@ class Demo:
         layout.add_child(collapse)
 
         horiz = gui.Horiz()
-        horiz.add_child(gui.Label("Stems:"))
+        horiz.add_child(gui.Label("Number of Stems:"))
         self.stems_edit = gui.NumberEdit(gui.NumberEdit.INT)
         horiz.add_child(self.stems_edit)
         layout.add_child(horiz)
@@ -132,10 +133,10 @@ class Demo:
         horiz.add_child(gui.Label("Diameters:"))
         self.diam_edits.append(gui.NumberEdit(gui.NumberEdit.DOUBLE))
         self.diam_edits.append(gui.NumberEdit(gui.NumberEdit.DOUBLE))
-        self.diam_edits.append(gui.NumberEdit(gui.NumberEdit.DOUBLE))
+        #self.diam_edits.append(gui.NumberEdit(gui.NumberEdit.DOUBLE))
         horiz.add_child(self.diam_edits[0])
         horiz.add_child(self.diam_edits[1])
-        horiz.add_child(self.diam_edits[2])
+        #horiz.add_child(self.diam_edits[2])
         layout.add_child(horiz)
 
         horiz = gui.Horiz(0.33 * em)
@@ -146,7 +147,7 @@ class Demo:
         horiz.add_child(self.diam_ratio_edits[0])
         horiz.add_child(self.diam_ratio_edits[1])
         horiz.add_child(self.diam_ratio_edits[2])
-        layout.add_child(horiz)
+        #layout.add_child(horiz)
 
         collapse = gui.CollapsableVert("Tunables", 0.33 * em, gui.Margins(em, 0, 0, 0))
 
@@ -178,7 +179,7 @@ class Demo:
         cb.set_on_checked(self._on_ransac_cb)
         collapse.add_child(cb)
 
-        layout.add_child(collapse)
+        #layout.add_child(collapse)
 
         self.window.add_child(layout)
 
@@ -219,6 +220,7 @@ class Demo:
         self.slice_cloud.paint_uniform_color(SLICE_COLOR)
         self.flat_slice_cloud = self.make_flat_slice()
         self.flat_slice_cloud.paint_uniform_color(SLICE_COLOR)
+        self.tree.paint_uniform_color(TREE_COLOR)
         self.tree_vis.add_geometry(self.tree.uniform_down_sample(10))
         self.tree_vis.add_geometry(self.slice_cloud)
         self.slice_vis.add_geometry(self.flat_slice_cloud)
@@ -253,6 +255,8 @@ class Demo:
         for cluster_index in range(cluster_count):
             # Extract the points in the current cluster and slice to make it 2D
             points = cloud_points[np.where(labels == cluster_index)][:, :2]
+            # with open(f"points{cluster_index}.pts", "wb") as f:
+            #     np.save(f, points)
             diameters.append(compute_diameters(points, use_ransac=self.use_ransac))
         # Set the diameters in sorted order
         for (diam_edit, ratio_edit), (long_diam, perp_diam) in zip(zip(self.diam_edits, self.diam_ratio_edits),

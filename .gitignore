@@ -6,3 +6,7 @@ pyntcloud_plot*
 *.pdf
 *.pts
 __pycache__/
+
+*.png
+*.svg
+*.jpg
