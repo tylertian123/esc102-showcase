@@ -4,6 +4,7 @@ import numpy as np
 import open3d as o3d
 import queue
 import struct
+import colorsys
 
 print("Libraries loaded")
 
@@ -13,7 +14,7 @@ class LidarDemoHandler(socketserver.BaseRequestHandler):
 
     # This will be running in a different thread, so use the thread safe queue
     point_queue = None # type: queue.Queue
-
+    MSG_SIZE = 24
 
     def handle(self):
         print(f"Connection established from {self.client_address}")
@@ -27,8 +28,8 @@ class LidarDemoHandler(socketserver.BaseRequestHandler):
             # Unpack the doubles and add them to the queue
             mem = memoryview(self.buf)
             i = 0
-            while i < len(self.buf) - 23:
-                x, y, z = struct.unpack("ddd", mem[i:i + 24])
+            while i < len(self.buf) - (self.MSG_SIZE - 1):
+                x, y, z = struct.unpack("ddd", mem[i:i + self.MSG_SIZE])
                 self.point_queue.put((x, y, z))
                 print(f"Received point ({x}, {y}, {z})")
                 i += 24
@@ -54,7 +55,7 @@ if __name__ == "__main__":
         cloud = o3d.geometry.PointCloud()
         vis = o3d.visualization.VisualizerWithKeyCallback()
         vis.create_window()
-        #vis.get_render_option().point_size = 2.0
+        vis.get_render_option().point_size = 2.0
         vis.add_geometry(cloud)
         vis.add_geometry(o3d.geometry.TriangleMesh.create_coordinate_frame())
 
@@ -72,9 +73,15 @@ if __name__ == "__main__":
             if action == 1:
                 o3d.io.write_point_cloud("network_cloud.ply", cloud)
                 print("Saved point cloud")
+        def reset_callback(vis, action, mods):
+            if action == 1:
+                cloud.points = o3d.utility.Vector3dVector()
+                vis.update_geometry(cloud)
+                print("Reset")
         vis.register_key_action_callback(ord(' '), reset_view_callback)
         vis.register_key_action_callback(ord('Q'), quit_callback)
         vis.register_key_action_callback(ord('S'), save_callback)
+        vis.register_key_action_callback(ord('R'), reset_callback)
 
         while not close:
             updated = False
@@ -83,6 +90,8 @@ if __name__ == "__main__":
                     updated = True
                     x, y, z = point_queue.get(block=False)
                     cloud.points.append(np.array((x, y, z)))
+                    #cloud.colors.append(np.array(colorsys.hsv_to_rgb(strength / 10000 * 0.667, 1, 1)))
+                    #cloud.paint_uniform_color([0.75, 0.75, 0.75])
                     print(f"Added point ({x}, {y}, {z})")
             except queue.Empty:
                 pass

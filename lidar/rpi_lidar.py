@@ -4,6 +4,7 @@ import struct
 
 SENSOR_DEV = "/dev/serial0"
 SENSOR_BAUDRATE = 460800
+SENSOR_PRECISION = 0.1
 HORIZ_SERVO = 18
 VERT_SERVO = 12
 
@@ -16,10 +17,10 @@ SCAN_STEP_TIME = 0.01
 print("Initializing")
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-    def process_datapoint(x: float, y: float, z: float) -> None:
+    def process_datapoint(x: float, y: float, z: float, strength: int, temp: float) -> None:
         # Just send 3 raw floats per data point for now
         sock.sendall(struct.pack("ddd", x, y, z))
-    lidar = Lidar(SENSOR_DEV, SENSOR_BAUDRATE, HORIZ_SERVO, VERT_SERVO, process_datapoint)
+    lidar = Lidar(SENSOR_DEV, SENSOR_BAUDRATE, SENSOR_PRECISION, HORIZ_SERVO, VERT_SERVO, process_datapoint)
 
     host, port = input("Enter host & port for processing server: ").split(":")
     port = int(port)

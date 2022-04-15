@@ -14,8 +14,8 @@ import sys
 class Lidar:
 
     # Note the callback will be called from a separate thread!
-    def __init__(self, sensor_device: str, sensor_baudrate: int, horiz_servo_port: int, vert_servo_port: int,
-                 data_callback: Callable[[float, float, float], None]) -> None:
+    def __init__(self, sensor_device: str, sensor_baudrate: int, sensor_precision: float, horiz_servo_port: int,
+                 vert_servo_port: int, data_callback: Callable[[float, float, float, int, float], None]) -> None:
         self.sensor = tfmini_s.Sensor(sensor_device, sensor_baudrate)
         # Pulse width range 500us to 2500us
         # Frame width of 3ms inferred from operating frequency range (50Hz-330Hz)
@@ -73,7 +73,8 @@ class Lidar:
                 continue
             theta = math.radians(self.h_angle)
             phi = math.radians(self.v_angle)
-            self.callback(r * math.cos(phi) * math.cos(theta), r * math.cos(phi) * math.sin(theta), r * math.sin(phi))
+            self.callback(r * math.cos(phi) * math.cos(theta), r * math.cos(phi) * math.sin(theta), r * math.sin(phi),
+                strength, temp)
 
     def scan_h(self, start_angle_h: float, stop_angle_h: float, start_angle_v: float, stop_angle_v: float,
                h_step: float, v_step: float, step_time: float) -> None:

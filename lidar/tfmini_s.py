@@ -11,11 +11,15 @@ class ChecksumError(Exception):
 class Sensor:
     """
     TFmini-S LiDAR sensor over serial.
+
+    Precision is the output precision in cm. For example, if the sensor is configured to output in cm,
+    precision would be 1.0; if the sensor outputs in mm, then precision is 0.1.
     """
 
-    def __init__(self, device: str, baudrate: int = 115200):
+    def __init__(self, device: str, baudrate: int = 115200, precision: float = 1):
         self.ser = serial.Serial(device, baudrate, bytesize=serial.EIGHTBITS,
                                  parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE)
+        self.precision = precision
 
     def read(self, clear_buf: bool = False) -> Tuple[float, int, float]:
         """
@@ -60,7 +64,7 @@ class Sensor:
         strength = ((strength_h << 8) | strength_l)
         if strength == 0xFFFF:
             strength = -1
-        return dist / 100, strength, temp
+        return dist / 100 * self.precision, strength, temp
 
     def clear_buf(self) -> None:
         """

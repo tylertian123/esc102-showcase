@@ -48,7 +48,7 @@ class Demo:
         self.SLICE_START = np.min(self.point_arr[:, 2])
         self.SLICE_STOP = np.max(self.point_arr[:, 2])
         self.slice_step = 0.1
-        self.slice_z = 1.296
+        self.slice_z = self.SLICE_START
         self.slice_updated = True
 
         self.window = None
@@ -133,10 +133,10 @@ class Demo:
         horiz.add_child(gui.Label("Diameters (m):"))
         self.diam_edits.append(gui.NumberEdit(gui.NumberEdit.DOUBLE))
         self.diam_edits.append(gui.NumberEdit(gui.NumberEdit.DOUBLE))
-        #self.diam_edits.append(gui.NumberEdit(gui.NumberEdit.DOUBLE))
+        self.diam_edits.append(gui.NumberEdit(gui.NumberEdit.DOUBLE))
         horiz.add_child(self.diam_edits[0])
         horiz.add_child(self.diam_edits[1])
-        #horiz.add_child(self.diam_edits[2])
+        horiz.add_child(self.diam_edits[2])
         layout.add_child(horiz)
 
         horiz = gui.Horiz(0.33 * em)
@@ -147,7 +147,7 @@ class Demo:
         horiz.add_child(self.diam_ratio_edits[0])
         horiz.add_child(self.diam_ratio_edits[1])
         horiz.add_child(self.diam_ratio_edits[2])
-        #layout.add_child(horiz)
+        layout.add_child(horiz)
 
         collapse = gui.CollapsableVert("Tunables", 0.33 * em, gui.Margins(em, 0, 0, 0))
 
@@ -179,7 +179,7 @@ class Demo:
         cb.set_on_checked(self._on_ransac_cb)
         collapse.add_child(cb)
 
-        #layout.add_child(collapse)
+        layout.add_child(collapse)
 
         self.window.add_child(layout)
 
