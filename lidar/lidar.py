@@ -15,13 +15,13 @@ class Lidar:
 
     # Note the callback will be called from a separate thread!
     def __init__(self, sensor_device: str, sensor_baudrate: int, sensor_precision: float, horiz_servo_port: int,
-                 vert_servo_port: int, data_callback: Callable[[float, float, float, int, float], None]) -> None:
-        self.sensor = tfmini_s.Sensor(sensor_device, sensor_baudrate)
+                 vert_servo_port: int, vert_offset: float, data_callback: Callable[[float, float, float, int, float], None]) -> None:
+        self.sensor = tfmini_s.Sensor(sensor_device, sensor_baudrate, sensor_precision)
         # Pulse width range 500us to 2500us
         # Frame width of 3ms inferred from operating frequency range (50Hz-330Hz)
         self.h_servo = gpiozero.AngularServo(horiz_servo_port, initial_angle=0, min_angle=-135, max_angle=135,
             min_pulse_width=500e-6, max_pulse_width=2500e-6, frame_width=4e-3)
-        self.v_servo = gpiozero.AngularServo(vert_servo_port, initial_angle=0, min_angle=0, max_angle=270,
+        self.v_servo = gpiozero.AngularServo(vert_servo_port, initial_angle=0, min_angle=0 - vert_offset, max_angle=270 - vert_offset,
             min_pulse_width=500e-6, max_pulse_width=2500e-6, frame_width=4e-3)
         self.callback = data_callback
         # Used by the daemon
