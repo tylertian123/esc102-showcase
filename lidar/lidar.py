@@ -5,6 +5,8 @@ import time
 import math
 import threading
 import sys
+import tqdm
+import contextlib
 
 
 # Set pin factory to pigpio according to the docs to reduce jitter
@@ -77,7 +79,7 @@ class Lidar:
                 strength, temp)
 
     def scan_h(self, start_angle_h: float, stop_angle_h: float, start_angle_v: float, stop_angle_v: float,
-               h_step: float, v_step: float, step_time: float) -> None:
+               h_step: float, v_step: float, step_time: float, print_progress: bool = False) -> None:
         """
         Perform a full scan in the angle range specified, sweeping horizontally first.
 
@@ -99,23 +101,27 @@ class Lidar:
         th.start()
         self.scan_up = h_step > 0
 
-        while self.v_servo.angle < stop_angle_v:
-            # Scan in both directions
-            while (h_step > 0 and self.h_servo.angle < stop_angle_h) or (h_step < 0 and self.h_servo.angle > start_angle_h):
-                self.h_angle += h_step
-                self.h_servo.angle = self.h_angle
+        num_steps = (stop_angle_v - start_angle_v) / v_step
+        with tqdm.tqdm(total=math.ceil(num_steps)) if print_progress else contextlib.nullcontext() as pbar:
+            while self.v_servo.angle < stop_angle_v:
+                # Scan in both directions
+                while (h_step > 0 and self.h_servo.angle < stop_angle_h) or (h_step < 0 and self.h_servo.angle > start_angle_h):
+                    self.h_angle += h_step
+                    self.h_servo.angle = self.h_angle
 
-            # Change stepping direction and move slow axis
-            h_step = -h_step
-            self.scan_up = h_step > 0
-            self.v_angle += v_step
-            self.v_servo.angle = self.v_angle
-            time.sleep(step_time)
+                # Change stepping direction and move slow axis
+                h_step = -h_step
+                self.scan_up = h_step > 0
+                self.v_angle += v_step
+                self.v_servo.angle = self.v_angle
+                if print_progress:
+                    pbar.update()
+                time.sleep(step_time)
 
         self.scanning = False
     
     def scan_v(self, start_angle_h: float, stop_angle_h: float, start_angle_v: float, stop_angle_v: float,
-               h_step: float, v_step: float, step_time: float) -> None:
+               h_step: float, v_step: float, step_time: float, print_progress: bool = False) -> None:
         """
         Same as scan_h(), but sweeps vertically first.
         """
@@ -128,17 +134,21 @@ class Lidar:
         th.start()
         self.scan_up = v_step > 0
 
-        while self.h_servo.angle < stop_angle_h:
-            # Scan in both directions
-            while (v_step > 0 and self.v_servo.angle < stop_angle_v) or (v_step < 0 and self.v_servo.angle > start_angle_v):
-                self.v_angle += v_step
-                self.v_servo.angle = self.v_angle
+        num_steps = (stop_angle_h - start_angle_h) / h_step
+        with tqdm.tqdm(total=math.ceil(num_steps)) if print_progress else contextlib.nullcontext() as pbar:
+            while self.h_servo.angle < stop_angle_h:
+                # Scan in both directions
+                while (v_step > 0 and self.v_servo.angle < stop_angle_v) or (v_step < 0 and self.v_servo.angle > start_angle_v):
+                    self.v_angle += v_step
+                    self.v_servo.angle = self.v_angle
 
-            # Change stepping direction and move slow axis
-            v_step = -v_step
-            self.scan_up = v_step > 0
-            self.h_angle += h_step
-            self.h_servo.angle = self.h_angle
-            time.sleep(step_time)
+                # Change stepping direction and move slow axis
+                v_step = -v_step
+                self.scan_up = v_step > 0
+                self.h_angle += h_step
+                self.h_servo.angle = self.h_angle
+                if print_progress:
+                    pbar.update()
+                time.sleep(step_time)
 
         self.scanning = False

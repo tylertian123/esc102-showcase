@@ -36,7 +36,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
     lidar.scan_v(SCAN_RANGE_THETA[0], SCAN_RANGE_THETA[1], SCAN_RANGE_PHI[0], SCAN_RANGE_PHI[1],
                  (SCAN_RANGE_THETA[1] - SCAN_RANGE_THETA[0]) / SCAN_THETA_POINTS,
                  (SCAN_RANGE_PHI[1] - SCAN_RANGE_PHI[0]) / SCAN_PHI_POINTS,
-                 SCAN_STEP_TIME)
+                 SCAN_STEP_TIME, print_progress=True)
     print("Scan done, zeroing")
     lidar.reset()
     input("Zero done")
