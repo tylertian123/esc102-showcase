@@ -23,14 +23,14 @@ COLORS = np.array([
 def get_color(label: int):
     return np.array([0, 0, 0]) if label == -1 else COLORS[label % len(COLORS)]
 
-def compute_diameters(points: np.ndarray, use_ransac: bool = True) -> Tuple[float, float]:
+def compute_diameters_ellipse(points: np.ndarray, use_ransac: bool = True) -> Tuple[float, float]:
     if len(points) < 3:
         return (np.nan, np.nan)
     # Use RANSAC to fit an ellipse to the points
     if use_ransac:
         ellipse, _ = measure.ransac(points, measure.fit.EllipseModel, min(max(3, len(points) // 3), 20), 0.01, max_trials=30)
         if ellipse is None:
-            return compute_diameters(points, use_ransac=False)
+            return compute_diameters_ellipse(points, use_ransac=False)
     else:
         ellipse = measure.fit.EllipseModel()
         if not ellipse.estimate(points):
@@ -39,16 +39,26 @@ def compute_diameters(points: np.ndarray, use_ransac: bool = True) -> Tuple[floa
     b = ellipse.params[3] * 2
     return max(a, b), min(a, b)
 
-def compute_diameter_simple(points: np.ndarray) -> float:
+def compute_diameters_simple(points: np.ndarray) -> Tuple[float, float]:
     if len(points) < 3:
-        return np.nan
+        return np.nan, np.nan
     try:
         hull = points[scipy.spatial.ConvexHull(points).vertices]
     except scipy.spatial.qhull.QhullError:
-        return np.nan
+        return np.nan, np.nan
     dist = scipy.spatial.distance_matrix(hull, hull)
     i, j = np.unravel_index(np.argmax(dist), dist.shape)
-    return dist[i, j]
+        # Compute the distance along the axis perpendicular to the diameter axis
+    # Find the vector to project onto, normalized and perpendicular to the difference between the diameter points
+    s = hull[i] - hull[j]
+    s /= np.sqrt(np.dot(s, s))
+    s[0], s[1] = -s[1], s[0]
+    # Find the length of each projection by taking the dot product
+    proj_lens = np.dot(hull - hull[i], s)
+    # Instead of taking the most positive projected length and subtracting the most negative, we take the projected
+    # length furthest from zero and double it. This is because in the scanned point cloud, the stem might appear as
+    # only half of an ellipse since the back is blocked
+    return dist[i, j], np.max(np.abs(proj_lens)) * 2
 
 
 class Demo:
@@ -73,7 +83,7 @@ class Demo:
         self.cluster_eps = 0.15
         self.cluster_min_points = 5
         self.use_ransac = False
-        self.use_ellipse_fit = False
+        self.use_ellipse_fit = True
         self.init_window()
         self.recompute_crown_width()
 
@@ -176,11 +186,12 @@ class Demo:
 
         cb = gui.Checkbox("Use RANSAC?")
         cb.set_on_checked(self._on_ransac_cb)
+        cb.checked = self.use_ransac
         collapse.add_child(cb)
 
         cb = gui.Checkbox("Use ellipse fit?")
         cb.set_on_checked(self._on_ellipse_cb)
-        cb.checked = True
+        cb.checked = self.use_ellipse_fit
         collapse.add_child(cb)
 
         layout.add_child(collapse)
@@ -191,7 +202,10 @@ class Demo:
         # Use convex hull to eliminate all the points not on the perimeter after squashing
         pts = self.point_arr[:, :2]
         hull = pts[scipy.spatial.ConvexHull(pts).vertices]
-        long_diam, perp_diam = compute_diameters(hull, use_ransac=self.use_ransac)
+        if self.use_ellipse_fit:
+            long_diam, perp_diam = compute_diameters_ellipse(hull, use_ransac=self.use_ransac)
+        else:
+            long_diam, perp_diam = compute_diameters_simple(hull)
         self.crown_width_edits[0].double_value = long_diam
         self.crown_width_edits[1].double_value = perp_diam
         self.crown_width_edits[2].double_value = (long_diam + perp_diam) / 2
@@ -225,6 +239,7 @@ class Demo:
     def _on_ellipse_cb(self, checked: bool):
         self.slice_updated = True
         self.use_ellipse_fit = checked
+        self.recompute_crown_width()
 
     def init_visualizers(self) -> None:
         self.tree_vis = o3d.visualization.Visualizer()
@@ -274,9 +289,9 @@ class Demo:
             # Extract the points in the current cluster and slice to make it 2D
             points = cloud_points[np.where(labels == cluster_index)][:, :2]
             if self.use_ellipse_fit:
-                diam, _ = compute_diameters(points, use_ransac=self.use_ransac)
+                diam, _ = compute_diameters_ellipse(points, use_ransac=self.use_ransac)
             else:
-                diam = compute_diameter_simple(points)
+                diam, _ = compute_diameters_simple(points)
             if not math.isnan(diam):
                 diameters.append(diam)
         # Set the diameters in sorted order
