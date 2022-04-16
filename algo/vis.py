@@ -5,9 +5,11 @@ cloud = o3d.io.read_point_cloud(sys.argv[1])
 print(cloud)
 cloud, _ = cloud.remove_statistical_outlier(20, 2.0, True)
 print(cloud)
-#cloud.paint_uniform_color([0.75, 0.75, 0.75])
+
+#o3d.visualization.draw(cloud)
+
 vis = o3d.visualization.VisualizerWithEditing()
 vis.create_window()
+vis.get_render_option().point_size = 2.0
 vis.add_geometry(cloud)
-vis.get_render_option().point_size = 1.0
 vis.run()

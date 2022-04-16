@@ -1,4 +1,5 @@
 from typing import Tuple
+import math
 import open3d as o3d
 import numpy as np
 import sys
@@ -38,6 +39,18 @@ def compute_diameters(points: np.ndarray, use_ransac: bool = True) -> Tuple[floa
     b = ellipse.params[3] * 2
     return max(a, b), min(a, b)
 
+def compute_diameter_simple(points: np.ndarray) -> float:
+    if len(points) < 3:
+        return np.nan
+    try:
+        hull = points[scipy.spatial.ConvexHull(points).vertices]
+    except scipy.spatial.qhull.QhullError:
+        return np.nan
+    dist = scipy.spatial.distance_matrix(hull, hull)
+    i, j = np.unravel_index(np.argmax(dist), dist.shape)
+    return dist[i, j]
+
+
 class Demo:
 
     def __init__(self, filename: str) -> None:
@@ -55,12 +68,14 @@ class Demo:
         self.slice_z_slider = None
         self.slice_z_edit = None
         self.diam_edits = []
-        self.diam_ratio_edits = []
         self.stems_edit = None
+        self.crown_width_edits = []
         self.cluster_eps = 0.15
         self.cluster_min_points = 5
         self.use_ransac = False
+        self.use_ellipse_fit = False
         self.init_window()
+        self.recompute_crown_width()
 
         self.tree_vis = None
         self.slice_vis = None
@@ -95,30 +110,24 @@ class Demo:
         horiz.add_child(nedit)
         layout.add_child(horiz)
 
-        print("Computing crown width...")
-        # Use convex hull to eliminate all the points not on the perimeter after squashing
-        pts = self.point_arr[:, :2]
-        hull = pts[scipy.spatial.ConvexHull(pts).vertices]
-        # Don't use RANSAC for computing the crown width since it's unnecessary
-        long_diam, perp_diam = compute_diameters(hull, use_ransac=False)
-        print("Calculated crown width:", long_diam, perp_diam)
+        
         collapse = gui.CollapsableVert("Crown width", 0.33 * em, gui.Margins(em, 0, 0, 0))
         horiz = gui.Horiz()
         horiz.add_child(gui.Label("Long Axis (m):"))
         nedit = gui.NumberEdit(gui.NumberEdit.DOUBLE)
-        nedit.double_value = long_diam
+        self.crown_width_edits.append(nedit)
         horiz.add_child(nedit)
         collapse.add_child(horiz)
         horiz = gui.Horiz()
         horiz.add_child(gui.Label("Short Axis (m):"))
         nedit = gui.NumberEdit(gui.NumberEdit.DOUBLE)
-        nedit.double_value = perp_diam
+        self.crown_width_edits.append(nedit)
         horiz.add_child(nedit)
         collapse.add_child(horiz)
         horiz = gui.Horiz()
         horiz.add_child(gui.Label("Average (m):"))
         nedit = gui.NumberEdit(gui.NumberEdit.DOUBLE)
-        nedit.double_value = (long_diam + perp_diam) / 2
+        self.crown_width_edits.append(nedit)
         horiz.add_child(nedit)
         collapse.add_child(horiz)
         layout.add_child(collapse)
@@ -137,16 +146,6 @@ class Demo:
         horiz.add_child(self.diam_edits[0])
         horiz.add_child(self.diam_edits[1])
         horiz.add_child(self.diam_edits[2])
-        layout.add_child(horiz)
-
-        horiz = gui.Horiz(0.33 * em)
-        horiz.add_child(gui.Label("Diam. Ratios:"))
-        self.diam_ratio_edits.append(gui.NumberEdit(gui.NumberEdit.DOUBLE))
-        self.diam_ratio_edits.append(gui.NumberEdit(gui.NumberEdit.DOUBLE))
-        self.diam_ratio_edits.append(gui.NumberEdit(gui.NumberEdit.DOUBLE))
-        horiz.add_child(self.diam_ratio_edits[0])
-        horiz.add_child(self.diam_ratio_edits[1])
-        horiz.add_child(self.diam_ratio_edits[2])
         layout.add_child(horiz)
 
         collapse = gui.CollapsableVert("Tunables", 0.33 * em, gui.Margins(em, 0, 0, 0))
@@ -179,9 +178,23 @@ class Demo:
         cb.set_on_checked(self._on_ransac_cb)
         collapse.add_child(cb)
 
+        cb = gui.Checkbox("Use ellipse fit?")
+        cb.set_on_checked(self._on_ellipse_cb)
+        cb.checked = True
+        collapse.add_child(cb)
+
         layout.add_child(collapse)
 
         self.window.add_child(layout)
+    
+    def recompute_crown_width(self):
+        # Use convex hull to eliminate all the points not on the perimeter after squashing
+        pts = self.point_arr[:, :2]
+        hull = pts[scipy.spatial.ConvexHull(pts).vertices]
+        long_diam, perp_diam = compute_diameters(hull, use_ransac=self.use_ransac)
+        self.crown_width_edits[0].double_value = long_diam
+        self.crown_width_edits[1].double_value = perp_diam
+        self.crown_width_edits[2].double_value = (long_diam + perp_diam) / 2
 
     def _on_slider(self, val: float):
         self.slice_updated = True
@@ -207,6 +220,11 @@ class Demo:
     def _on_ransac_cb(self, checked: bool):
         self.slice_updated = True
         self.use_ransac = checked
+        self.recompute_crown_width()
+    
+    def _on_ellipse_cb(self, checked: bool):
+        self.slice_updated = True
+        self.use_ellipse_fit = checked
 
     def init_visualizers(self) -> None:
         self.tree_vis = o3d.visualization.Visualizer()
@@ -255,14 +273,15 @@ class Demo:
         for cluster_index in range(cluster_count):
             # Extract the points in the current cluster and slice to make it 2D
             points = cloud_points[np.where(labels == cluster_index)][:, :2]
-            # with open(f"points{cluster_index}.pts", "wb") as f:
-            #     np.save(f, points)
-            diameters.append(compute_diameters(points, use_ransac=self.use_ransac))
+            if self.use_ellipse_fit:
+                diam, _ = compute_diameters(points, use_ransac=self.use_ransac)
+            else:
+                diam = compute_diameter_simple(points)
+            if not math.isnan(diam):
+                diameters.append(diam)
         # Set the diameters in sorted order
-        for (diam_edit, ratio_edit), (long_diam, perp_diam) in zip(zip(self.diam_edits, self.diam_ratio_edits),
-            itertools.chain(sorted(diameters, reverse=True), itertools.repeat((np.nan, np.nan)))):
-            diam_edit.double_value = (long_diam + perp_diam) / 2
-            ratio_edit.double_value = long_diam / perp_diam
+        for diam_edit, long_diam in zip(self.diam_edits, itertools.chain(sorted(diameters, reverse=True), itertools.repeat(np.nan))):
+            diam_edit.double_value = long_diam
 
     def run(self):
         while True:

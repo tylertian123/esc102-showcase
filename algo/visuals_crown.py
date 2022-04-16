@@ -8,7 +8,7 @@ import math
 matplotlib.use("TkAgg")
 
 
-with open("crownpts.pts", 'rb') as f:
+with open("real_crown.pts", 'rb') as f:
     points = np.load(f)
 
 plt.gca().set_aspect('equal')
@@ -30,10 +30,10 @@ def plot_fit(points: np.ndarray, outlier_color: str, ellipse_color: str):
     (x0, y0), (x1, y1) = ellipse.predict_xy(np.array([np.pi / 2, np.pi * 3 / 2]))
     plt.plot([x0, x1], [y0, y1], linestyle='--', c=ellipse_color)
 
-#plot_fit(hull, outlier_color=None, ellipse_color="limegreen")
+plot_fit(hull, outlier_color=None, ellipse_color="limegreen")
 
 plt.legend(handles=[patches.Patch(color="blue", label="Points"), patches.Patch(color="red", label="Convex Hull"),
-])
+    patches.Patch(color="limegreen", label="Ellipse Fit")])
 man = plt.get_current_fig_manager()
 man.resize(*man.window.maxsize())
 plt.pause(5)
