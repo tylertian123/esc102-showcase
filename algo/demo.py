@@ -281,6 +281,7 @@ class Demo:
         self.flat_slice_cloud.paint_uniform_color(SLICE_COLOR)
         self.tree.paint_uniform_color(TREE_COLOR)
         self.tree_vis.add_geometry(self.tree.uniform_down_sample(10))
+        self.tree_vis.add_geometry(o3d.geometry.TriangleMesh.create_coordinate_frame())
         self.tree_vis.add_geometry(self.slice_cloud)
         self.slice_vis.add_geometry(self.flat_slice_cloud)
 

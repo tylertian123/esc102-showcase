@@ -71,7 +71,8 @@ class Lidar:
                 raise RuntimeError("Repeated checksum errors when communicating with ranging sensor!")
             if r == -1:
                 print(f"[LiDAR] Warning: Could not read distance (strength={strength}, temp={temp})", file=sys.stderr)
-            if not self.scan_up:
+            r += 0.05 # Offset from the servo arm length
+            if self.scan_up:
                 continue
             theta = math.radians(self.h_angle)
             phi = math.radians(self.v_angle)
