@@ -3,20 +3,17 @@ import matplotlib
 import numpy as np
 from skimage.measure import fit, ransac
 import math
+import sys
 
 matplotlib.use("TkAgg")
 
 
-with open("points0.pts", 'rb') as f0, open("points1.pts", 'rb') as f1:
-    points0 = np.load(f0)
-    points1 = np.load(f1)
-
-points0[:, 0], points0[:, 1] = points0[:, 1], points0[:, 0].copy()
-points1[:, 0], points1[:, 1] = points1[:, 1], points1[:, 0].copy()
+stems = [np.load(open(name, "rb")) for name in sys.argv[1:]]
 
 plt.gca().set_aspect('equal')
-plt.scatter(points0[:, 0], points0[:, 1], c='b')
-plt.scatter(points1[:, 0], points1[:, 1], c='r')
+
+for stem in stems:
+    plt.scatter(stem[:, 0], stem[:, 1])
 
 def plot_fit(points: np.ndarray, outlier_color: str, ellipse_color: str):
     ellipse, inliers = ransac(points, fit.EllipseModel, min(max(3, len(points) // 3), 20), 0.02, max_trials=50)
@@ -29,13 +26,13 @@ def plot_fit(points: np.ndarray, outlier_color: str, ellipse_color: str):
     (x0, y0), (x1, y1) = ellipse.predict_xy(np.array([np.pi / 2, np.pi * 3 / 2]))
     plt.plot([x0, x1], [y0, y1], linestyle='--', c=ellipse_color)
 
-#plot_fit(points0, outlier_color="orange", ellipse_color="limegreen")
-#plot_fit(points1, outlier_color="orange", ellipse_color="limegreen")
+for stem in stems:
+    plot_fit(stem, outlier_color="orange", ellipse_color="limegreen")
 
-plt.legend(handles=[patches.Patch(color="blue", label="Stem 1"), patches.Patch(color="red", label="Stem 2")])
+#plt.legend(handles=[patches.Patch(color="blue", label="Stem 1"), patches.Patch(color="red", label="Stem 2")])
 man = plt.get_current_fig_manager()
 man.resize(*man.window.maxsize())
-plt.pause(5)
+#plt.pause(5)
 
-plt.gcf().savefig("algo3.png", format="png", dpi=300, transparent=True)
+#plt.gcf().savefig("algo3.png", format="png", dpi=300, transparent=True)
 plt.show()

@@ -84,6 +84,7 @@ class Demo:
         self.cluster_min_points = 5
         self.use_ransac = False
         self.use_ellipse_fit = True
+        self.save_name_edit = None
         self.init_window()
         self.recompute_crown_width()
 
@@ -194,6 +195,19 @@ class Demo:
         cb.checked = self.use_ellipse_fit
         collapse.add_child(cb)
 
+        horiz = gui.Horiz(0.33 * em)
+        horiz.add_child(gui.Label("Export:"))
+        self.save_name_edit = gui.TextEdit()
+        self.save_name_edit.text_value = "points.pts"
+        horiz.add_child(self.save_name_edit)
+        button = gui.Button("Save Crown")
+        button.set_on_clicked(self._on_save_crown)
+        horiz.add_child(button)
+        button = gui.Button("Save Slice")
+        button.set_on_clicked(self._on_save_slice)
+        horiz.add_child(button)
+        collapse.add_child(horiz)
+
         layout.add_child(collapse)
 
         self.window.add_child(layout)
@@ -240,6 +254,18 @@ class Demo:
         self.slice_updated = True
         self.use_ellipse_fit = checked
         self.recompute_crown_width()
+    
+    def _on_save_slice(self):
+        name = self.save_name_edit.text_value
+        with open(name, "wb") as f:
+            np.save(f, np.asarray(self.flat_slice_cloud.points)[:, :2])
+        print("Saved to", name)
+    
+    def _on_save_crown(self):
+        name = self.save_name_edit.text_value
+        with open(name, "wb") as f:
+            np.save(f, self.point_arr[:, :2])
+        print("Saved to", name)
 
     def init_visualizers(self) -> None:
         self.tree_vis = o3d.visualization.Visualizer()

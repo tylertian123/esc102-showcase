@@ -4,11 +4,12 @@ import numpy as np
 import scipy
 from skimage.measure import fit, ransac
 import math
+import sys
 
 matplotlib.use("TkAgg")
 
 
-with open("real_crown.pts", 'rb') as f:
+with open(sys.argv[1], 'rb') as f:
     points = np.load(f)
 
 plt.gca().set_aspect('equal')
@@ -36,7 +37,7 @@ plt.legend(handles=[patches.Patch(color="blue", label="Points"), patches.Patch(c
     patches.Patch(color="limegreen", label="Ellipse Fit")])
 man = plt.get_current_fig_manager()
 man.resize(*man.window.maxsize())
-plt.pause(5)
+#plt.pause(5)
 
-plt.gcf().savefig("crown1.png", format="png", dpi=600, transparent=True)
+#plt.gcf().savefig("crown1.png", format="png", dpi=600, transparent=True)
 plt.show()
